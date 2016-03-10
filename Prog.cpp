@@ -10,14 +10,15 @@
 #define RX 11
 #define ON 8
 #define SIG 12 //Signal
-#define LED 13
 
 ////////////////////////////////////////////
 int state=LOW;
 int lastState=LOW;
 int count=0;
+
 volatile int f_timer=0;
-char phone[]={"601858953"}; //
+z
+char phone[]={"693378122"}; //
 char msg[6];
 
 ////////////////////////////////////////////
@@ -42,7 +43,6 @@ ISR(TIMER1_OVF_vect)
 void setup() {
  Serial.println("No witam");
 
-  
  msg[0]='S';
  msg[2]='B';
  gsm.init();
@@ -59,22 +59,19 @@ void setup() {
 
  
  /*** Configure the timer.***/
-  
   /* Normal timer operation.*/
-  TCCR1A = 0x00; 
-  
+  TCCR1A = 0x00;
+   
   /* Clear the timer counter register.
    * You can pre-load this register with a value in order to 
    * reduce the timeout period, say if you wanted to wake up
    * ever 4.0 seconds exactly.
    */
   TCNT1=0x0000; 
-  
   /* Configure the prescaler for 1:1024, giving us a 
    * timeout of 4.09 seconds.
    */
   TCCR1B = 0x05;
-  
   /* Enable the timer overlow interrupt. */
   TIMSK1=0x01;
   
@@ -94,13 +91,8 @@ void pinInterrupt();
 
 void loop() {  
  
- Signals();
  ReadSerial();
- if(count == 7)
- {
-  Send();
-  count=0;
- }
+ 
 }
 
 /////////////////////////////////////
@@ -121,25 +113,24 @@ void Send()
    delay(1000);
  }   
  Serial.println("Wyslano sms");
- count = 0;
  SleepGSM();
   
 }
 
 void Signals()
 {
-  if (state==HIGH && lastState==LOW){
+  //if (state==HIGH && lastState==LOW){
     count++;
     msg[1]=count+'0'; 
     msg[5]='0';
     Serial.println(count);
     delay(50);
-  }
+  //}
   
-  lastState=state;
-  state=digitalRead(SIG);
+ // lastState=state;
+ // state=digitalRead(SIG);
 }
-
+//////////////////////////////////
 void ReadSerial()
 {
   if (mySerial->available()) {
@@ -149,7 +140,7 @@ void ReadSerial()
     mySerial->write(Serial.read());
   }
 }
-
+//////////////////////////////////
 void SleepGSM(){
   Serial.println("GSM go sleep");
   mySerial->flush();
@@ -157,6 +148,7 @@ void SleepGSM(){
   delay(100);
   mySerial->write("ATS24=1\r\n");
 }
+//////////////////////////////////
 void WakeUpGSM()
 {
     Serial.println("GSM wake up!");
@@ -167,8 +159,8 @@ void WakeUpGSM()
     delay(4000);
     Serial.println("GSM woke wp");
 }
-
-void enterSleep(void)
+//////////////////////////////////
+void EnterSleep(void)
 {
   set_sleep_mode(SLEEP_MODE_IDLE);
   
@@ -193,33 +185,34 @@ void enterSleep(void)
   /* Re-enable the peripherals. */
   power_all_enable();
 }
-
-void EnterSleep2(void)
+//////////////////////////////////
+void EnterSleep2() //
 {
   
- // Choose our preferred sleep mode:  
+    // Choose our preferred sleep mode:  
     set_sleep_mode(SLEEP_MODE_PWR_SAVE);  
-    //  
+   
     interrupts();  
     // Set pin 2 as interrupt and attach handler:  
     attachInterrupt(0, pinInterrupt, HIGH);  
+    
     delay(100);  
-    //  
     // Set sleep enable (SE) bit:  
     sleep_enable();  
-    //  
     // Put the device to sleep:  
     digitalWrite(13,LOW);   // turn LED off to indicate sleep  
+    
     sleep_mode();  
-    //  
     // Upon waking up, sketch continues from this point.  
     sleep_disable();  
-    digitalWrite(13,HIGH);   // turn LED on to indicate awake  
+    Signals(); 
+    Send();
 }
+//////////////////////////////////
 void pinInterrupt()  
 {  
     detachInterrupt(0);  
     attachInterrupt(0, pinInterrupt, HIGH);  
 }  
-
+//////////////////////////////////
 
