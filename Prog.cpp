@@ -17,7 +17,7 @@ int state=LOW;
 int lastState=LOW;
 int count=0;
 volatile int f_timer=0;
-char phone[]={"693378122"}; //
+char phone[]={"601858953"}; //
 char msg[6];
 
 ////////////////////////////////////////////
