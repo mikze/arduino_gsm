@@ -2,43 +2,28 @@
 #include <avr/power.h>  
 #include <avr/sleep.h>  
 #include <avr/io.h> 
+
 #include <SoftwareSerial.h>
 #include <GSM_G510.h>
 
 ////////////////////////////////////////////
 #define TX 10
 #define RX 11
-#define ON 8
-#define SIG 12 //Signal
-
+#define SIG 2 //Signal
+#define TIM 3 //timer
 ////////////////////////////////////////////
+int toggle=0;
 int state=LOW;
 int lastState=LOW;
 int count=0;
 
-volatile int f_timer=0;
-z
 char phone[]={"693378122"}; //
 char msg[6];
 
 ////////////////////////////////////////////
-
 GSM_G510 gsm=GSM_G510(RX,TX,ON);
 SoftwareSerial *mySerial=gsm.GetSerial();
-
-///////////////////////////////////////////
-
-ISR(TIMER1_OVF_vect)
-{
-  /* set the flag. */
-   if(f_timer == 0)
-   {
-     f_timer = 1;
-   }
-}
-
 ////////////////////////////////////////////
-
 
 void setup() {
  Serial.println("No witam");
@@ -49,49 +34,44 @@ void setup() {
  Serial.begin(9600);
  pinMode(SIG, INPUT);
  state=digitalRead(SIG);
- pinMode(LED,OUTPUT);      // set pin 13 as an output so we can use LED to monitor  
 
  mySerial->flush();
  mySerial->write("\r\n");
  mySerial->write("AT\r\n");
  mySerial->flush(); 
  
-
- 
- /*** Configure the timer.***/
-  /* Normal timer operation.*/
-  TCCR1A = 0x00;
-   
-  /* Clear the timer counter register.
-   * You can pre-load this register with a value in order to 
-   * reduce the timeout period, say if you wanted to wake up
-   * ever 4.0 seconds exactly.
-   */
-  TCNT1=0x0000; 
-  /* Configure the prescaler for 1:1024, giving us a 
-   * timeout of 4.09 seconds.
-   */
-  TCCR1B = 0x05;
-  /* Enable the timer overlow interrupt. */
-  TIMSK1=0x01;
   
 }
 /////////////////////////////////////
 
 void Send();
-void Signals();
+void CountSignals();
 void ReadSerial();
 void SleepGSM();
 void WakeUpGSM();
 void EnterSleep();
-void EnterSleep2();
-void pinInterrupt();
+void SignalInterrupt();
+void TimerInterrupt();
 
 ////////////////////////////////////
 
 void loop() {  
  
- ReadSerial();
+ SleepGSM();
+ EnterSleep();
+ 
+ if(toggle==1)
+ {
+     Serial.println("Signal!!!");
+     CountSignals();
+ }
+ if(toggle==2)
+ {
+     Serial.println("TIMER!!");
+     Send();
+ }
+ 
+ toggle=0;
  
 }
 
@@ -117,20 +97,19 @@ void Send()
   
 }
 
-void Signals()
+///////////////////////////////////
+
+void CountSignals()
 {
-  //if (state==HIGH && lastState==LOW){
     count++;
     msg[1]=count+'0'; 
     msg[5]='0';
     Serial.println(count);
     delay(50);
-  //}
-  
- // lastState=state;
- // state=digitalRead(SIG);
 }
+
 //////////////////////////////////
+
 void ReadSerial()
 {
   if (mySerial->available()) {
@@ -140,7 +119,9 @@ void ReadSerial()
     mySerial->write(Serial.read());
   }
 }
+
 //////////////////////////////////
+
 void SleepGSM(){
   Serial.println("GSM go sleep");
   mySerial->flush();
@@ -148,7 +129,9 @@ void SleepGSM(){
   delay(100);
   mySerial->write("ATS24=1\r\n");
 }
+
 //////////////////////////////////
+
 void WakeUpGSM()
 {
     Serial.println("GSM wake up!");
@@ -159,34 +142,10 @@ void WakeUpGSM()
     delay(4000);
     Serial.println("GSM woke wp");
 }
-//////////////////////////////////
-void EnterSleep(void)
-{
-  set_sleep_mode(SLEEP_MODE_IDLE);
-  
-  sleep_enable();
-  /* Disable all of the unused peripherals. This will reduce power
-   * consumption further and, more importantly, some of these
-   * peripherals may generate interrupts that will wake our Arduino from
-   * sleep!
-   */
-  power_adc_disable();
-  power_spi_disable();
-  power_timer0_disable();
-  power_timer2_disable();
-  power_twi_disable();  
 
-  /* Now enter sleep mode. */
-  sleep_mode();
-  
-  /* The program will continue from here after the timer timeout*/
-  sleep_disable(); /* First thing to do is disable sleep. */
-  
-  /* Re-enable the peripherals. */
-  power_all_enable();
-}
-//////////////////////////////////
-void EnterSleep2() //
+/////////////////////////////////////
+
+void EnterSleep() 
 {
   
     // Choose our preferred sleep mode:  
@@ -194,25 +153,28 @@ void EnterSleep2() //
    
     interrupts();  
     // Set pin 2 as interrupt and attach handler:  
-    attachInterrupt(0, pinInterrupt, HIGH);  
-    
+    attachInterrupt(0, SignalInterrupt, HIGH);  
+    attachInterrupt(1, TimerInterrupt, HIGH);
     delay(100);  
     // Set sleep enable (SE) bit:  
     sleep_enable();  
-    // Put the device to sleep:  
-    digitalWrite(13,LOW);   // turn LED off to indicate sleep  
-    
+    // Put the device to sleep: 
     sleep_mode();  
     // Upon waking up, sketch continues from this point.  
     sleep_disable();  
-    Signals(); 
-    Send();
+  
 }
+
 //////////////////////////////////
-void pinInterrupt()  
+
+void SignalInterrupt()  
 {  
-    detachInterrupt(0);  
-    attachInterrupt(0, pinInterrupt, HIGH);  
+    toggle = 1;
 }  
 //////////////////////////////////
+
+void TimerInterrupt()
+{
+    toggle = 2;
+}
 
