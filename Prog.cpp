@@ -209,7 +209,7 @@ void SignalInterrupt()
 //////////////////////////////////
 void OptionInterrupt()  
 {  
-    toggle = 1;
+    toggle = 2;
 }  
 //////////////////////////////////
 
