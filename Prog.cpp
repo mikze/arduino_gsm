@@ -10,19 +10,28 @@
 #define TX 10
 #define RX 11
 #define SIG 2 //Signal
-#define TIM 3 //timer
+#define COM 3 //Communication
 ////////////////////////////////////////////
-int toggle=0;
+volatile int toggle=0;
+volatile int time=0;
+
 int state=LOW;
 int lastState=LOW;
 int count=0;
 
-char phone[]={"693378122"}; //
+
+int sensorValue;
+float voltage;
+float option;
+
+char phone[]={"693378122"}; 
 char msg[6];
 
 ////////////////////////////////////////////
-GSM_G510 gsm=GSM_G510(RX,TX,ON);
+GSM_G510 gsm=GSM_G510(RX,TX,8);
 SoftwareSerial *mySerial=gsm.GetSerial();
+////////////////////////////////////////////
+
 ////////////////////////////////////////////
 
 void setup() {
@@ -40,6 +49,10 @@ void setup() {
  mySerial->write("AT\r\n");
  mySerial->flush(); 
  
+ MCUSR &= ~(1<<WDRF); //Clear the reset flag.
+ WDTCSR |= (1<<WDCE) | (1<<WDE); // This will allow updates for 4 clock cycles
+ WDTCSR = 1<<WDP0 | 1<<WDP3; //set new watchdog timeout prescaler value
+ WDTCSR |= _BV(WDIE); //Enable the WD interrupt
   
 }
 /////////////////////////////////////
@@ -51,28 +64,42 @@ void SleepGSM();
 void WakeUpGSM();
 void EnterSleep();
 void SignalInterrupt();
-void TimerInterrupt();
+float ReadVoltage();
 
 ////////////////////////////////////
 
+ISR(WDT_vect)
+{
+  time = time+8;
+}
+/////////////////////////////////////
+
 void loop() {  
  
- SleepGSM();
- EnterSleep();
- 
- if(toggle==1)
- {
-     Serial.println("Signal!!!");
-     CountSignals();
- }
- if(toggle==2)
- {
-     Serial.println("TIMER!!");
-     Send();
- }
- 
- toggle=0;
- 
+  EnterSleep();
+  if(time == 24)
+  {
+    Serial.println("Time");
+    Serial.println(count);
+    Serial.println(ReadVoltage());
+    //Send();
+    time=0;
+  }
+  else
+  {
+    
+  }
+  if(toggle == 1)
+  {
+    CountSignals();
+    Serial.println("Signal");
+    Serial.println(count);
+    Serial.println(ReadVoltage());
+  }
+  else{
+    
+  }
+  toggle=0;
 }
 
 /////////////////////////////////////
@@ -119,7 +146,13 @@ void ReadSerial()
     mySerial->write(Serial.read());
   }
 }
-
+//////////////////////////////////
+float ReadVoltage()
+{
+  sensorValue = analogRead(A0);  
+  voltage = sensorValue * (5.0 / 1023.0);
+  return voltage;
+}
 //////////////////////////////////
 
 void SleepGSM(){
@@ -154,7 +187,8 @@ void EnterSleep()
     interrupts();  
     // Set pin 2 as interrupt and attach handler:  
     attachInterrupt(0, SignalInterrupt, HIGH);  
-    attachInterrupt(1, TimerInterrupt, HIGH);
+    // Set pin 3 as interrupt and attach handler:
+    attachInterrupt(1, OptionInterrupt, HIGH);
     delay(100);  
     // Set sleep enable (SE) bit:  
     sleep_enable();  
@@ -162,19 +196,20 @@ void EnterSleep()
     sleep_mode();  
     // Upon waking up, sketch continues from this point.  
     sleep_disable();  
+    
   
 }
 
 //////////////////////////////////
-
 void SignalInterrupt()  
 {  
     toggle = 1;
 }  
 //////////////////////////////////
-
-void TimerInterrupt()
-{
-    toggle = 2;
-}
+//////////////////////////////////
+void OptionInterrupt()  
+{  
+    toggle = 1;
+}  
+//////////////////////////////////
 
