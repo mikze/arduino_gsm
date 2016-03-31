@@ -18,6 +18,8 @@ volatile int time=0;
 int state=LOW;
 int lastState=LOW;
 int count=0;
+int block=0;
+bool zapadnia=0;
 
 
 int sensorValue;
@@ -57,7 +59,8 @@ void setup() {
 }
 /////////////////////////////////////
 
-void Send();
+void Menu();
+void Send(int flag);
 void CountSignals();
 void ReadSerial();
 void SleepGSM();
@@ -76,7 +79,7 @@ ISR(WDT_vect)
 
 void loop() {  
  
-  EnterSleep();
+  
   if(time == 24)
   {
     Serial.println("Time");
@@ -91,35 +94,84 @@ void loop() {
   }
   if(toggle == 1)
   {
-    CountSignals();
-    Serial.println("Signal");
-    Serial.println(count);
-    Serial.println(ReadVoltage());
-  }
-  else{
     
+    Serial.println("Signal");
+    if(digitalRead(SIG)==LOW)
+    {
+      if(zapadnia==1)
+      {
+         block=0;
+         toggle=0;
+         zapadnia=0;
+         EnterSleep();
+      }
+    }
   }
-  toggle=0;
+  if(toggle==0)
+  {
+    Serial.println("Spanie");
+    EnterSleep();
+  }
+
+  if(digitalRead(SIG)==LOW)
+    {
+      if(zapadnia==1)
+      {
+         CountSignals();
+         block=0;
+         toggle=0;
+         zapadnia=0;
+         EnterSleep();
+      }
+    }
+    if(digitalRead(SIG)==HIGH)
+    {
+      
+      Serial.println(ReadVoltage());
+      block++;;
+      if(block==150)
+      {
+        Serial.println("BLOCKED");
+        delay(5000);
+      }
+      zapadnia=1;
+    }
+    
+  Serial.println(time);
+  Serial.print("Block: ");
+  Serial.print(block);
+  Serial.print(" Rats: ");
+  Serial.println(count);
+  delay(100);
+  
 }
 
 /////////////////////////////////////
 
-void Send()
+void Send(int flag)
 {
  
  WakeUpGSM();
-   
-   Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
-  delay(15000);
+   if(flag==0)
+   {
+    Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
+     delay(15000);
 
-  Serial.println("Wysylanie sms:");
-   Serial.println(msg);
+    Serial.println("Wysylanie sms:");
+    Serial.println(msg);
  
- while(!gsm.sendSms(phone,msg)) {
+   while(!gsm.sendSms(phone,msg)) {
    Serial.println("Nie wyslano sms");
    delay(1000);
  }   
  Serial.println("Wyslano sms");
+    
+   }
+   if(flag==1)
+   {
+  
+   }
+   
  SleepGSM();
   
 }
@@ -182,7 +234,7 @@ void EnterSleep()
 {
   
     // Choose our preferred sleep mode:  
-    set_sleep_mode(SLEEP_MODE_PWR_SAVE);  
+    set_sleep_mode(SLEEP_MODE_PWR_SAVE); 
    
     interrupts();  
     // Set pin 2 as interrupt and attach handler:  
@@ -213,3 +265,7 @@ void OptionInterrupt()
 }  
 //////////////////////////////////
 
+void Menu()
+{
+    
+}
