@@ -13,30 +13,34 @@
 #define COM 3 //Communication
 #define VOLTAGE 5 //battery voltage
 ////////////////////////////////////////////
-volatile int toggle=0;
 volatile int time=0;
 
  int count=0;
  int block=0;
  bool zapadnia=0;
 
-
-int sensorValue;
-float voltage;
-float option;
+  int sensorValue;
+  float voltage;
+  float option;
 
 char phone[]={"693378122"}; 
-char msg[13];
-char msg2;
+char msg[14];
 
 
 ////////////////////////////////////////////
 GSM_G510 gsm=GSM_G510(RX,TX,8);
 SoftwareSerial *mySerial=gsm.GetSerial();
 ////////////////////////////////////////////
-
+void Menu();
+void Send(int flag);
+void CountSignals();
+void ReadSerial();
+void SleepGSM();
+void WakeUpGSM();
+void EnterSleep();
+void SignalInterrupt();
+int ReadVoltage();
 ////////////////////////////////////////////
-
 void setup() {
  Serial.println("No witam");
  
@@ -53,95 +57,79 @@ void setup() {
  WDTCSR |= (1<<WDCE) | (1<<WDE); // This will allow updates for 4 clock cycles
  WDTCSR = 1<<WDP0 | 1<<WDP3; //set new watchdog timeout prescaler value
  WDTCSR |= _BV(WDIE); //Enable the WD interrupt
-  
+
+ EnterSleep();
 }
 /////////////////////////////////////
-
-void Menu();
-void Send(int flag);
-void CountSignals();
-void ReadSerial();
-void SleepGSM();
-void WakeUpGSM();
-void EnterSleep();
-void SignalInterrupt();
-float ReadVoltage();
-
-////////////////////////////////////
-
 ISR(WDT_vect)
 {
   time = time+8;
 }
-
 /////////////////////////////////////
 
 void loop() {  
- 
-  
-  if(time >= 24)
-  {
+    if(time >= 24)
+    {
     Serial.println("Time");
     Serial.println(count);
     Serial.println(ReadVoltage());
-    //Send();
     time=0;
-  }
-  if(digitalRead(SIG)==LOW)
+    }
+      
+    if(digitalRead(SIG)==LOW)
     {
       if(zapadnia==1)
       {
          CountSignals();
          block=0;
-         toggle=0;
          zapadnia=0;
          EnterSleep();
       }
     }
-////////////////////////////////////
+    
     if(digitalRead(SIG)==HIGH)
     {
-      
-      //Serial.println(ReadVoltage());
-      block++;;
+      block++;
       if(block==100)
       {
         Serial.println("BLOCKED");
-        Send(1);
+        //Send(1);
         delay(5000);
         block=1;
       }
       zapadnia=1;
     }
-//////////////////////////////////////
 
+    if(ReadVoltage() <= 3)
+    {
+      Send(2); //lowbattery
+    }
   Serial.println(time);
   Serial.print("Block: ");
   Serial.print(block);
   Serial.print(" Rats: ");
   Serial.println(count);
-  delay(100);
+  delay(100);  
   
 }
 /////////////////////////////////////
-Send(int flag)
+void Send(int flag)
 {
- 
- WakeUpGSM();
+   WakeUpGSM();
  
    if(flag==0)
    {
-    Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
+      Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
      delay(15000);
 
-    Serial.println("Wysylanie sms:");
-    Serial.println(msg);
+      Serial.println("Wysylanie sms:");
+      Serial.println(msg);
  
-   while(!gsm.sendSms(phone,msg)) {
+      while(!gsm.sendSms(phone,msg)) {
         Serial.println("Nie wyslano sms");
         delay(1000);
         }   
- Serial.println("Wyslano sms");
+      Serial.println("Wyslano sms");
     
    }
    
@@ -160,11 +148,24 @@ Send(int flag)
    Serial.println("Wyslano sms");
   
    }
+
+   if(flag==3)
+   {
+     Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
+     delay(15000);
+
+     Serial.println("Wysylanie sms:");
+     Serial.println("LOW BATTERY");
+   
+      while(!gsm.sendSms(phone,"LOW BATTER")) {
+      Serial.println("Nie wyslano sms");
+       delay(1000);
+   }   
+   Serial.println("Wyslano sms");
+   }
    
  SleepGSM();
-  
 }
-
 ///////////////////////////////////
 
 void CountSignals()
@@ -177,16 +178,18 @@ void CountSignals()
     msg[4]='M';
     msg[5]='T';
     msg[6]=' ';
-    msg[7]='B';
+    msg[7]='R';
     msg[8]=count+'0'; 
-    msg[9]=ReadVoltage()+'0';
-    msg[10]='I';
-    msg[11]='1';
-    msg[12]='\0';
+    msg[9]='B';
+    msg[10]=ReadVoltage()+'0';
+    msg[11]='I';
+    msg[12]='1';
+    msg[13]='\0';
+    
     Serial.println(count);
     if(count > 6)
     {
-      Send(0);
+      //Send(0);
     }
     delay(50);
 }
@@ -203,12 +206,13 @@ void ReadSerial()
   }
 }
 //////////////////////////////////
-float ReadVoltage()
+int ReadVoltage()
 {
   sensorValue = analogRead(A0);  
   voltage = sensorValue * (VOLTAGE / 1023.0);
-  return voltage;
+  return (int)voltage;
 }
+
 //////////////////////////////////
 
 void SleepGSM(){
@@ -260,17 +264,15 @@ void EnterSleep()
 //////////////////////////////////
 void SignalInterrupt()  
 {  
-    toggle = 1;
 }  
-//////////////////////////////////
 //////////////////////////////////
 void OptionInterrupt()  
 {  
-    toggle = 2;
 }  
 //////////////////////////////////
 
 void Menu()
 {
-    
 }
+//////////////////////////////////
+
