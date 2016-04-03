@@ -59,6 +59,7 @@ void setup() {
  WDTCSR |= _BV(WDIE); //Enable the WD interrupt
 
  EnterSleep();
+ SleepGSM();
 }
 /////////////////////////////////////
 ISR(WDT_vect)
@@ -68,6 +69,7 @@ ISR(WDT_vect)
 /////////////////////////////////////
 
 void loop() {  
+  
     if(time >= 24)
     {
     Serial.println("Time");
@@ -76,31 +78,35 @@ void loop() {
     time=0;
     }
       
+     if(zapadnia==1)
+     {
+         CountSignals();
+         zapadnia=0;
+     }
     if(digitalRead(SIG)==LOW)
     {
-      if(zapadnia==1)
-      {
-         CountSignals();
-         block=0;
-         zapadnia=0;
-         EnterSleep();
-      }
+      block=0;
+      EnterSleep();
     }
     
     if(digitalRead(SIG)==HIGH)
     {
+      if(block ==0)
+      {
+        zapadnia=1;
+      }
       block++;
       if(block==100)
       {
         Serial.println("BLOCKED");
-        //Send(1);
+        Send(1);
         delay(5000);
         block=1;
       }
-      zapadnia=1;
+      
     }
 
-    if(ReadVoltage() <= 3)
+    if(ReadVoltage() == 18888)
     {
       Send(2); //lowbattery
     }
@@ -108,8 +114,8 @@ void loop() {
   Serial.print("Block: ");
   Serial.print(block);
   Serial.print(" Rats: ");
-  Serial.println(count);
-  delay(100);  
+  Serial.println(count); 
+  delay(100);
   
 }
 /////////////////////////////////////
@@ -149,7 +155,7 @@ void Send(int flag)
   
    }
 
-   if(flag==3)
+   if(flag==2)
    {
      Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
      delay(15000);
@@ -189,7 +195,7 @@ void CountSignals()
     Serial.println(count);
     if(count > 6)
     {
-      //Send(0);
+      Send(0);
     }
     delay(50);
 }
@@ -241,7 +247,6 @@ void WakeUpGSM()
 void EnterSleep() 
 {
 
-    SleepGSM();
     // Choose our preferred sleep mode:  
     set_sleep_mode(SLEEP_MODE_PWR_SAVE); 
    
@@ -249,7 +254,7 @@ void EnterSleep()
     // Set pin 2 as interrupt and attach handler:  
     attachInterrupt(0, SignalInterrupt, HIGH);  
     // Set pin 3 as interrupt and attach handler:
-    attachInterrupt(1, OptionInterrupt, HIGH);
+    //attachInterrupt(1, OptionInterrupt, HIGH);
     delay(100);  
     // Set sleep enable (SE) bit:  
     sleep_enable();  
@@ -266,9 +271,9 @@ void SignalInterrupt()
 {  
 }  
 //////////////////////////////////
-void OptionInterrupt()  
+/*void OptionInterrupt()  
 {  
-}  
+}  */
 //////////////////////////////////
 
 void Menu()
