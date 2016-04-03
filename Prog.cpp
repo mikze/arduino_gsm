@@ -19,12 +19,12 @@ volatile int time=0;
  int block=0;
  bool zapadnia=0;
 
-  int sensorValue;
-  float voltage;
-  float option;
+ int sensorValue;
+ float voltage;
+ float option;
 
-char phone[]={"693378122"}; 
-char msg[14];
+ char phone[]={"537522430"}; 
+ char msg[14];
 
 
 ////////////////////////////////////////////
@@ -70,7 +70,7 @@ ISR(WDT_vect)
 
 void loop() {  
   
-    if(time >= 24)
+    if(time >= 24) //event time co ile sek?
     {
     Serial.println("Time");
     Serial.println(count);
@@ -83,6 +83,7 @@ void loop() {
          CountSignals();
          zapadnia=0;
      }
+     
     if(digitalRead(SIG)==LOW)
     {
       block=0;
@@ -125,9 +126,9 @@ void Send(int flag)
  
    if(flag==0)
    {
+      msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='R';msg[8]=count+'0'; msg[9]='B';msg[10]=ReadVoltage()+'0';msg[11]='I';msg[12]='1';msg[13]='\0';
       Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
-     delay(15000);
-
+      delay(15000);
       Serial.println("Wysylanie sms:");
       Serial.println(msg);
  
@@ -141,13 +142,14 @@ void Send(int flag)
    
    if(flag==1)
    {
+    msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='B';msg[8]='L'; msg[9]='O';msg[10]='C';msg[11]='K';msg[12]='1';msg[13]='\0';
     Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
      delay(15000);
 
     Serial.println("Wysylanie sms:");
-    Serial.println("BLOCKED ID 1");
+    Serial.println(msg);
    
-   while(!gsm.sendSms(phone,"BLOCKED ID 1")) {
+   while(!gsm.sendSms(phone,msg)) {
    Serial.println("Nie wyslano sms");
    delay(1000);
    }   
@@ -157,11 +159,28 @@ void Send(int flag)
 
    if(flag==2)
    {
+     msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='L';msg[8]='O'; msg[9]='W';msg[10]=ReadVoltage()+'B';msg[11]='A';msg[12]='1';msg[13]='\0';
      Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
      delay(15000);
 
      Serial.println("Wysylanie sms:");
-     Serial.println("LOW BATTERY");
+     Serial.println(msg);
+   
+      while(!gsm.sendSms(phone,"LOW BATTER")) {
+      Serial.println("Nie wyslano sms");
+       delay(1000);
+   }   
+   Serial.println("Wyslano sms");
+   }
+
+     if(flag==3)
+   {
+     msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='L';msg[8]='O'; msg[9]='W';msg[10]=ReadVoltage()+'B';msg[11]='A';msg[12]='1';msg[13]='\0';
+     Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
+     delay(15000);
+
+     Serial.println("Wysylanie sms:");
+     Serial.println(msg);
    
       while(!gsm.sendSms(phone,"LOW BATTER")) {
       Serial.println("Nie wyslano sms");
@@ -177,20 +196,6 @@ void Send(int flag)
 void CountSignals()
 {
     count++;
-    msg[0]='P';
-    msg[1]='C';
-    msg[2]='P';
-    msg[3]='L';
-    msg[4]='M';
-    msg[5]='T';
-    msg[6]=' ';
-    msg[7]='R';
-    msg[8]=count+'0'; 
-    msg[9]='B';
-    msg[10]=ReadVoltage()+'0';
-    msg[11]='I';
-    msg[12]='1';
-    msg[13]='\0';
     
     Serial.println(count);
     if(count > 6)
@@ -276,7 +281,7 @@ void SignalInterrupt()
 }  */
 //////////////////////////////////
 
-void Menu()
+void Menu() //todo
 {
 }
 //////////////////////////////////
