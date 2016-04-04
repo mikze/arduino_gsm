@@ -23,7 +23,7 @@ volatile int time=0;
  float voltage;
  float option;
 
- char phone[]={"537522430"}; 
+ char phone[]={"4628"}; 
  char msg[14];
 
 
