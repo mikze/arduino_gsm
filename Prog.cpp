@@ -11,7 +11,8 @@
 #define RX 11
 #define SIG 2 //Signal
 #define COM 3 //Communication
-#define VOLTAGE 5 //battery voltage
+#define SWITCH 4 //Communication
+#define VOLTAGE 9 //battery voltage
 ////////////////////////////////////////////
 volatile int time=0;
 
@@ -47,6 +48,7 @@ void setup() {
  gsm.init();
  Serial.begin(9600);
  pinMode(SIG, INPUT);
+ pinMode(SIG, OUTPUT);
 
  mySerial->flush();
  mySerial->write("\r\n");
@@ -115,7 +117,9 @@ void loop() {
   Serial.print("Block: ");
   Serial.print(block);
   Serial.print(" Rats: ");
-  Serial.println(count); 
+  Serial.print(count); 
+  Serial.print(" Battery: ");
+  Serial.println(ReadVoltage());
   delay(100);
   
 }
@@ -219,8 +223,10 @@ void ReadSerial()
 //////////////////////////////////
 int ReadVoltage()
 {
+  digitalWrite(SWITCH, HIGH);
   sensorValue = analogRead(A0);  
   voltage = sensorValue * (VOLTAGE / 1023.0);
+  digitalWrite(SWITCH, LOW);
   return (int)voltage;
 }
 
@@ -285,4 +291,3 @@ void Menu() //todo
 {
 }
 //////////////////////////////////
-
