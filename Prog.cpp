@@ -11,8 +11,8 @@
 #define RX 11
 #define SIG 2 //Signal
 #define COM 3 //Communication
-#define SWITCH 4 //Communication
-#define VOLTAGE 9 //battery voltage
+#define SWITCH 13 //Switch
+#define VOLTAGE 5 //battery voltage
 ////////////////////////////////////////////
 volatile int time=0;
 
@@ -40,7 +40,7 @@ void SleepGSM();
 void WakeUpGSM();
 void EnterSleep();
 void SignalInterrupt();
-int ReadVoltage();
+float ReadVoltage();
 ////////////////////////////////////////////
 void setup() {
  Serial.println("No witam");
@@ -48,7 +48,7 @@ void setup() {
  gsm.init();
  Serial.begin(9600);
  pinMode(SIG, INPUT);
- pinMode(SIG, OUTPUT);
+ pinMode(13, OUTPUT);
 
  mySerial->flush();
  mySerial->write("\r\n");
@@ -80,14 +80,15 @@ void loop() {
     time=0;
     }
       
-     if(zapadnia==1)
+   
+     
+    if(digitalRead(SIG)==LOW)
+    {
+        if(zapadnia==1)
      {
          CountSignals();
          zapadnia=0;
      }
-     
-    if(digitalRead(SIG)==LOW)
-    {
       block=0;
       EnterSleep();
     }
@@ -130,7 +131,7 @@ void Send(int flag)
  
    if(flag==0)
    {
-      msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='R';msg[8]=count+'0'; msg[9]='B';msg[10]=ReadVoltage()+'0';msg[11]='I';msg[12]='1';msg[13]='\0';
+      msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='R';msg[8]=count+'0'; msg[9]='I';msg[10]='1';msg[11]='\0';
       Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
       delay(15000);
       Serial.println("Wysylanie sms:");
@@ -202,10 +203,10 @@ void CountSignals()
     count++;
     
     Serial.println(count);
-    if(count > 6)
-    {
+    //if(count > 600000)
+    //{
       Send(0);
-    }
+    //}
     delay(50);
 }
 
@@ -221,13 +222,15 @@ void ReadSerial()
   }
 }
 //////////////////////////////////
-int ReadVoltage()
+float ReadVoltage()
 {
-  digitalWrite(SWITCH, HIGH);
+  digitalWrite(13, HIGH);
+  delay(100);
   sensorValue = analogRead(A0);  
   voltage = sensorValue * (VOLTAGE / 1023.0);
-  digitalWrite(SWITCH, LOW);
-  return (int)voltage;
+  //delay(1000);
+  digitalWrite(13, LOW);
+  return voltage;
 }
 
 //////////////////////////////////
