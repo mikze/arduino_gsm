@@ -225,8 +225,8 @@ void ReadSerial()
 float ReadVoltage()
 {
   digitalWrite(13, HIGH);
-  sensorValue = analogRead(A1);  
-  voltage = sensorValue * (VOLTAGE / 1023.0);
+  sensorValue = analogRead(A0);  
+  voltage = sensorValue * (5.0 *1.8/ 1023.0);
   digitalWrite(13, LOW);
   return voltage;
 }
