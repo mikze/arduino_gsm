@@ -8,7 +8,7 @@
 
 ////////////////////////////////////////////
 #define TX 10
-#define RX 11
+#define RX 8
 #define SIG 2 //Signal
 #define COM 3 //Communication
 #define SWITCH 13 //Switch
@@ -29,7 +29,7 @@ volatile int time=0;
 
 
 ////////////////////////////////////////////
-GSM_G510 gsm=GSM_G510(RX,TX,8);
+GSM_G510 gsm=GSM_G510(RX,TX,9);
 SoftwareSerial *mySerial=gsm.GetSerial();
 ////////////////////////////////////////////
 void Menu();
@@ -225,10 +225,8 @@ void ReadSerial()
 float ReadVoltage()
 {
   digitalWrite(13, HIGH);
-  delay(100);
-  sensorValue = analogRead(A0);  
+  sensorValue = analogRead(A1);  
   voltage = sensorValue * (VOLTAGE / 1023.0);
-  //delay(1000);
   digitalWrite(13, LOW);
   return voltage;
 }
