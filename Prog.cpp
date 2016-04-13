@@ -4,6 +4,7 @@
 #include <avr/io.h> 
 
 #include <SoftwareSerial.h>
+#include <LiquidCrystal.h>
 #include <GSM_G510.h>
 
 ////////////////////////////////////////////
@@ -41,14 +42,17 @@ void WakeUpGSM();
 void EnterSleep();
 void SignalInterrupt();
 float ReadVoltage();
+LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
 ////////////////////////////////////////////
 void setup() {
- Serial.println("No witam");
  
  gsm.init();
  Serial.begin(9600);
  pinMode(SIG, INPUT);
  pinMode(13, OUTPUT);
+ digitalWrite(13, LOW);
+ lcd.begin(16, 2);
+ lcd.print("hello, world!");
 
  mySerial->flush();
  mySerial->write("\r\n");
@@ -71,12 +75,12 @@ ISR(WDT_vect)
 /////////////////////////////////////
 
 void loop() {  
-  
+    voltage = ReadVoltage();
     if(time >= 24) //event time co ile sek?
     {
     Serial.println("Time");
     Serial.println(count);
-    Serial.println(ReadVoltage());
+    Serial.println(voltage);
     time=0;
     }
       
@@ -100,8 +104,11 @@ void loop() {
         zapadnia=1;
       }
       block++;
-      if(block==100)
+      if(block==500000)
       {
+        lcd.begin(16, 2);
+        lcd.setCursor(0, 0);
+        lcd.print("!!BLOCKED!!");
         Serial.println("BLOCKED");
         Send(1);
         delay(5000);
@@ -120,18 +127,35 @@ void loop() {
   Serial.print(" Rats: ");
   Serial.print(count); 
   Serial.print(" Battery: ");
-  Serial.println(ReadVoltage());
+  Serial.println(voltage);
+  
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print(voltage);
+  lcd.setCursor(0, 1);
+  lcd.print(block);lcd.print(" ");lcd.print(count);
+  
   delay(100);
   
 }
 /////////////////////////////////////
 void Send(int flag)
 {
+   lcd.begin(16, 2);
+   lcd.setCursor(0, 0);
+   lcd.print("GSM WAKE UP!");
    WakeUpGSM();
+   lcd.begin(16, 2);
+   lcd.setCursor(0, 0);
+   lcd.print("Try to send SMS");
+   
  
    if(flag==0)
    {
+    
       msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='R';msg[8]=count+'0'; msg[9]='I';msg[10]='1';msg[11]='\0';
+      lcd.setCursor(0, 1);
+      lcd.print(msg);
       Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
       delay(15000);
       Serial.println("Wysylanie sms:");
@@ -142,12 +166,17 @@ void Send(int flag)
         delay(1000);
         }   
       Serial.println("Wyslano sms");
+      lcd.begin(16, 2);
+      lcd.setCursor(0, 0);
+      lcd.print("SMS SEND");
     
    }
    
    if(flag==1)
    {
     msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='B';msg[8]='L'; msg[9]='O';msg[10]='C';msg[11]='K';msg[12]='1';msg[13]='\0';
+    lcd.setCursor(0, 1);
+    lcd.print(msg);
     Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
      delay(15000);
 
@@ -159,28 +188,38 @@ void Send(int flag)
    delay(1000);
    }   
    Serial.println("Wyslano sms");
-  
+   lcd.begin(16, 2);
+   lcd.setCursor(0, 0);
+   lcd.print("SMS SEND");
    }
 
    if(flag==2)
    {
      msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='L';msg[8]='O'; msg[9]='W';msg[10]=ReadVoltage()+'B';msg[11]='A';msg[12]='1';msg[13]='\0';
+     lcd.setCursor(0, 1);
+     lcd.print(msg);
      Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
      delay(15000);
 
      Serial.println("Wysylanie sms:");
      Serial.println(msg);
+     
    
       while(!gsm.sendSms(phone,"LOW BATTER")) {
       Serial.println("Nie wyslano sms");
        delay(1000);
    }   
    Serial.println("Wyslano sms");
+   lcd.begin(16, 2);
+   lcd.setCursor(0, 0);
+   lcd.print("SMS SEND");
    }
 
      if(flag==3)
    {
      msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='L';msg[8]='O'; msg[9]='W';msg[10]=ReadVoltage()+'B';msg[11]='A';msg[12]='1';msg[13]='\0';
+     lcd.setCursor(0, 1);
+     lcd.print(msg);
      Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
      delay(15000);
 
@@ -192,6 +231,9 @@ void Send(int flag)
        delay(1000);
    }   
    Serial.println("Wyslano sms");
+   lcd.begin(16, 2);
+   lcd.setCursor(0, 0);
+   lcd.print("SMS SEND");
    }
    
  SleepGSM();
@@ -203,10 +245,10 @@ void CountSignals()
     count++;
     
     Serial.println(count);
-    //if(count > 600000)
-    //{
+    if(count > 600000)
+    {
       Send(0);
-    //}
+    }
     delay(50);
 }
 
@@ -225,8 +267,9 @@ void ReadSerial()
 float ReadVoltage()
 {
   digitalWrite(13, HIGH);
+  delay(50);
   sensorValue = analogRead(A0);  
-  voltage = sensorValue * (5.0 *1.8/ 1023.0);
+  voltage = (sensorValue * 5) / 1023.0;
   digitalWrite(13, LOW);
   return voltage;
 }
