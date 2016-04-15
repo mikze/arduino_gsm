@@ -15,17 +15,20 @@
 #define SWITCH 13 //Switch
 #define VOLTAGE 5 //battery voltage
 ////////////////////////////////////////////
-volatile int time=0;
+volatile int time1=0;
+volatile int time2=0;
 
  int count=0;
  int block=0;
  bool zapadnia=0;
+ bool a=1;
 
  int sensorValue;
+ int lvl=1;
  float voltage;
  float option;
 
- char phone[]={"4628"}; 
+ char phone[]={"0048577824873"}; 
  char msg[14];
 
 
@@ -53,6 +56,7 @@ void setup() {
  digitalWrite(13, LOW);
  lcd.begin(16, 2);
  lcd.print("hello, world!");
+ 
 
  mySerial->flush();
  mySerial->write("\r\n");
@@ -70,18 +74,41 @@ void setup() {
 /////////////////////////////////////
 ISR(WDT_vect)
 {
-  time = time+8;
+  time1 = time1+8;
+  time2 = time2+8;
 }
 /////////////////////////////////////
 
 void loop() {  
-    voltage = ReadVoltage();
-    if(time >= 24) //event time co ile sek?
+ 
+    if(a==1)
     {
+      Send(3);
+      ReadVoltage();
+      a=0;
+    }
+
+     Serial.println(time1);
+     Serial.print("Block: ");
+     Serial.print(block);
+     Serial.print(" Rats: ");
+     Serial.print(count); 
+ 
+    if(time1 >= 86400) //event time co ile sek?
+    {
+    ReadVoltage();
+    //lcd.begin(16, 2);
+    //lcd.setCursor(0, 0);
+    //lcd.print(lvl);
     Serial.println("Time");
     Serial.println(count);
-    Serial.println(voltage);
-    time=0;
+    Serial.println(lvl);
+    time1=0;
+    }
+    if(time2 >= 10800) //event time co ile sek?
+    {
+    ReadVoltage();
+    time2=0;
     }
       
    
@@ -104,7 +131,7 @@ void loop() {
         zapadnia=1;
       }
       block++;
-      if(block==500000)
+      if(block>=100)
       {
         lcd.begin(16, 2);
         lcd.setCursor(0, 0);
@@ -117,23 +144,15 @@ void loop() {
       
     }
 
-    if(ReadVoltage() == 18888)
+    if(lvl == 0)
     {
       Send(2); //lowbattery
     }
-  Serial.println(time);
-  Serial.print("Block: ");
-  Serial.print(block);
-  Serial.print(" Rats: ");
-  Serial.print(count); 
-  Serial.print(" Battery: ");
-  Serial.println(voltage);
+ 
   
   lcd.begin(16, 2);
-  lcd.setCursor(0, 0);
-  lcd.print(voltage);
   lcd.setCursor(0, 1);
-  lcd.print(block);lcd.print(" ");lcd.print(count);
+  lcd.print(block);lcd.print(" ");lcd.print(count);lcd.print(" ");lcd.print(lvl);
   
   delay(100);
   
@@ -152,8 +171,8 @@ void Send(int flag)
  
    if(flag==0)
    {
-    
-      msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='R';msg[8]=count+'0'; msg[9]='I';msg[10]='1';msg[11]='\0';
+      ReadVoltage();
+      msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='R';msg[8]=count+'0'; msg[9]='I';msg[10]='1';msg[11]='B';msg[12]=lvl+'0';msg[13]='\0';
       lcd.setCursor(0, 1);
       lcd.print(msg);
       Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
@@ -205,7 +224,7 @@ void Send(int flag)
      Serial.println(msg);
      
    
-      while(!gsm.sendSms(phone,"LOW BATTER")) {
+      while(!gsm.sendSms(phone,msg)) {
       Serial.println("Nie wyslano sms");
        delay(1000);
    }   
@@ -217,7 +236,7 @@ void Send(int flag)
 
      if(flag==3)
    {
-     msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='L';msg[8]='O'; msg[9]='W';msg[10]=ReadVoltage()+'B';msg[11]='A';msg[12]='1';msg[13]='\0';
+     msg[0]='P';msg[1]='C';msg[2]='P';msg[3]='L';msg[4]='M';msg[5]='T';msg[6]=' ';msg[7]='R';msg[8]='D'; msg[9]='Y';msg[10]=ReadVoltage()+'I';msg[11]='D';msg[12]='1';msg[13]='\0';
      lcd.setCursor(0, 1);
      lcd.print(msg);
      Serial.println("Start - oczekiwanie na polaczenie z siecia (15 sekund)");
@@ -226,7 +245,7 @@ void Send(int flag)
      Serial.println("Wysylanie sms:");
      Serial.println(msg);
    
-      while(!gsm.sendSms(phone,"LOW BATTER")) {
+      while(!gsm.sendSms(phone,msg)) {
       Serial.println("Nie wyslano sms");
        delay(1000);
    }   
@@ -245,10 +264,10 @@ void CountSignals()
     count++;
     
     Serial.println(count);
-    if(count > 600000)
-    {
+    //if(count > 600000)
+    //{
       Send(0);
-    }
+    //}
     delay(50);
 }
 
@@ -267,10 +286,26 @@ void ReadSerial()
 float ReadVoltage()
 {
   digitalWrite(13, HIGH);
-  delay(50);
+  delay(300);
   sensorValue = analogRead(A0);  
   voltage = (sensorValue * 5) / 1023.0;
   digitalWrite(13, LOW);
+  if(voltage>0.70 && voltage <= 0.72)
+  {
+    lvl = 3;
+  }
+  if(voltage>63 && voltage <= 0.70)
+  {
+    lvl =2;
+  }
+  if(voltage>0.61 && voltage<= 0.63)
+  {
+    lvl=1;
+  }
+  if(voltage<0.61)
+  {
+    lvl=0; 
+  }
   return voltage;
 }
 
